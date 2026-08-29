@@ -1,0 +1,28 @@
+services:
+  ensayos-laboratorio-backend-service:
+    build: . # <-- AÑADE ESTA LÍNEA
+    image: techchaide/ensayos-laboratorio-backend:1.0
+    container_name: ensayos_laboratorio_backend_service
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      - TZ=America/Guayaquil
+    networks:
+      - traefik-net
+    volumes:
+      - /usr/share/zoneinfo/America/Guayaquil:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    labels:
+      # ... tus labels de Traefik se mantienen igual ...
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
+      - "traefik.http.routers.ensayos-laboratorio-backend-prod.rule=Host(`apps.chaide.com`) && PathPrefix(`/ensayosLaboratorioBA`)"
+      - "traefik.http.routers.ensayos-laboratorio-backend-prod.entrypoints=websecure"
+      - "traefik.http.routers.ensayos-laboratorio-backend-prod.tls=true"
+      - "traefik.http.middlewares.prod-ensayos-laboratorio-backend-strip.stripprefix.prefixes=/ensayosLaboratorioBA"
+      - "traefik.http.routers.ensayos-laboratorio-backend-prod.middlewares=prod-ensayos-laboratorio-backend-strip@docker"
+      - "traefik.http.services.ensayos-laboratorio-backend-prod.loadbalancer.server.port=5400"
+networks:
+  traefik-net:
+    external: true
