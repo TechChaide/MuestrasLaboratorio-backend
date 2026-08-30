@@ -10,6 +10,7 @@ module.exports = {
                 codigo_familia,
                 nombre_tipo_ensayo,
                 mnemonico,
+                probetas_minimas,
                 estado,
                 fecha_creacion,
                 usuario_creacion
@@ -23,6 +24,7 @@ module.exports = {
                     codigo_familia: codigo_familia,
                     nombre_tipo_ensayo: nombre_tipo_ensayo,
                     mnemonico: mnemonico,
+                    probetas_minimas: probetas_minimas,
                     estado: estado,
                     fecha_creacion: fecha_creacion,
                     usuario_creacion: usuario_creacion
@@ -54,6 +56,7 @@ module.exports = {
                 if (codigo_familia !== undefined) record.codigo_familia = codigo_familia;
                 if (nombre_tipo_ensayo !== undefined) record.nombre_tipo_ensayo = nombre_tipo_ensayo;
                 if (mnemonico !== undefined) record.mnemonico = mnemonico;
+                if (probetas_minimas !== undefined) record.probetas_minimas = probetas_minimas;
                 if (estado !== undefined) record.estado = estado;
                 if (fecha_creacion !== undefined) record.fecha_creacion = fecha_creacion;
                 if (usuario_creacion !== undefined) record.usuario_creacion = usuario_creacion;

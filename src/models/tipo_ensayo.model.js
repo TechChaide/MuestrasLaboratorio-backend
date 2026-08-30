@@ -21,6 +21,10 @@ module.exports = (sequelize) => {
         mnemonico: {
             type: DataTypes.STRING
         },
+
+        probetas_minimas: {
+            type: DataTypes.INTEGER
+        },
         
         estado: {
             type: DataTypes.STRING

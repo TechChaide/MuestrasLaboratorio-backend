@@ -13,6 +13,7 @@ module.exports = {
                 numero_columnas,
                 numero_filas_diseno,
                 version,
+                tipo_tabla,
                 estado,
                 fecha_modificacion,
                 usuario_modificacion
@@ -29,6 +30,7 @@ module.exports = {
                     numero_columnas: numero_columnas,
                     numero_filas_diseno: numero_filas_diseno,
                     version: version,
+                    tipo_tabla: tipo_tabla,
                     estado: estado,
                     fecha_modificacion: fecha_modificacion,
                     usuario_modificacion: usuario_modificacion
@@ -63,6 +65,7 @@ module.exports = {
                 if (numero_columnas !== undefined) record.numero_columnas = numero_columnas;
                 if (numero_filas_diseno !== undefined) record.numero_filas_diseno = numero_filas_diseno;
                 if (version !== undefined) record.version = version;
+                if (tipo_tabla === undefined) record.tipo_tabla = tipo_tabla;
                 if (estado !== undefined) record.estado = estado;
                 if (fecha_modificacion !== undefined) record.fecha_modificacion = fecha_modificacion;
                 if (usuario_modificacion !== undefined) record.usuario_modificacion = usuario_modificacion;

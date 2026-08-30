@@ -10,7 +10,6 @@ module.exports = {
                 nombre_familia,
                 mnemonico,
                 detalle,
-                probetas_minimas,
                 estado,
                 fecha_modificacion,
                 usuario_modificacion
@@ -24,7 +23,6 @@ module.exports = {
                     nombre_familia: nombre_familia,
                     mnemonico: mnemonico,
                     detalle: detalle,
-                    probetas_minimas: probetas_minimas,
                     estado: estado,
                     fecha_modificacion: fecha_modificacion,
                     usuario_modificacion: usuario_modificacion
@@ -48,7 +46,6 @@ module.exports = {
                 if (nombre_familia !== undefined) record.nombre_familia = nombre_familia;
                 if (mnemonico !== undefined) record.mnemonico = mnemonico;
                 if (detalle !== undefined) record.detalle = detalle;
-                if (probetas_minimas !== undefined) record.probetas_minimas = probetas_minimas;
                 if (estado !== undefined) record.estado = estado;
                 if (fecha_modificacion !== undefined) record.fecha_modificacion = fecha_modificacion;
                 if (usuario_modificacion !== undefined) record.usuario_modificacion = usuario_modificacion;

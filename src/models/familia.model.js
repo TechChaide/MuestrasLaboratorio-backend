@@ -22,10 +22,6 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING
         },
         
-        probetas_minimas: {
-            type: DataTypes.INTEGER
-        },
-        
         estado: {
             type: DataTypes.STRING
         },

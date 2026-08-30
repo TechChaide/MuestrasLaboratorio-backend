@@ -33,6 +33,10 @@ module.exports = (sequelize) => {
         version: {
             type: DataTypes.STRING
         },
+
+        tipo_tabla: {
+            type: DataTypes.STRING
+        },
         
         estado: {
             type: DataTypes.STRING
