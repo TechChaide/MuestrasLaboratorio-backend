@@ -72,7 +72,8 @@ module.exports = {
 
             const { count, rows } = await Familia.findAndCountAll({
                 limit: parseInt(limit),
-                offset: parseInt(offset)
+                offset: parseInt(offset),
+                where: { estado: 'A' }
             });
 
             return res.status(200).json({

@@ -97,9 +97,10 @@ module.exports = {
             const { count, rows } = await Resultado.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Celda, as: 'celda' },
-                    { model: Ensayo_categoria_ensayo, as: 'ensayo_categoria_ensayo' }
+                    { model: Celda, as: 'celda', where: { estado: 'A' } },
+                    { model: Ensayo_categoria_ensayo, as: 'ensayo_categoria_ensayo', where: { estado: 'A' } }
                 ]
             });
 

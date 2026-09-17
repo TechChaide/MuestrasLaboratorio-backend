@@ -37,7 +37,14 @@ module.exports = (sequelize) => {
         tipo_celda: {
             type: DataTypes.STRING
         },
-        
+
+        // Tipo de dato del valor que se captura en esta celda: entero, double,
+        // fecha, texto, booleano, imagen o nulos (celda bloqueada, no captura dato).
+        // Si no se especifica al crear, el controller la deja en 'texto' por defecto.
+        tipo_dato: {
+            type: DataTypes.STRING
+        },
+
         alias: {
             type: DataTypes.STRING
         },

@@ -99,8 +99,9 @@ module.exports = {
             const { count, rows } = await Formula.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Celda, as: 'celda' }
+                    { model: Celda, as: 'celda', where: { estado: 'A' } }
                 ]
             });
 

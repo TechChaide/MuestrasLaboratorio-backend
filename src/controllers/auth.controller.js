@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { Usuario } = require('../models');
 const { handleError } = require('../helpers/error.helper');
 
-const SECRET_KEY = process.env.SECRET_KEY || 'J*lL5yfvsDyE0p2?i$}}HUkjB<H!F=&A';
+const SECRET_KEY = process.env.SECRET_KEY || 'AyH~@UY<8.z!4+K?M^SHZ}OAW^qsr-s#';
 const TOKEN_EXPIRES_IN = process.env.TOKEN_EXPIRES_IN || '1h';
 
 const login = async (req, res) => {

@@ -1,5 +1,8 @@
+const { Op } = require('sequelize');
 const { Solicitud } = require('../models');
 const { handleError } = require('../helpers/error.helper');
+const { enviarNotificacionRequerimientoEntrante } = require('../mailer/mailer');
+const { getValorConfiguracion } = require('../mailer/configuracion.helper');
 
 module.exports = {
     // Create or update record
@@ -35,6 +38,20 @@ module.exports = {
                 });
 
                 const response = await Solicitud.findByPk(newRecord.codigo_solicitud);
+
+                // 2.1 — Nuevo requerimiento de ensayo, aún sin asignar. El correo del
+                // encargado se resuelve en vivo desde `configuracion` (ENCARGADO_APLICATIVO,
+                // APP_ENSAYOS_LABORATORIO) en seguridadesGuard — best-effort, no bloquea la respuesta.
+                getValorConfiguracion('ENCARGADO_APLICATIVO')
+                    .then((correo) => {
+                        if (!correo) return;
+                        return enviarNotificacionRequerimientoEntrante(correo, {
+                            identificador_ensayo: response.identificador_ensayo,
+                            descripcion: response.descripcion,
+                            fecha_fab_adq: response.fecha_fab_adq,
+                        });
+                    })
+                    .catch((err) => console.error('No se pudo enviar notificación de requerimiento entrante:', err));
 
                 return res.status(201).json({
                     data: response,
@@ -73,6 +90,43 @@ module.exports = {
         }
     },
 
+    // Último número de secuencia usado por una familia en el mes/año dados —
+    // el identificador se arma como FAMILIA-MES-AA-### y la secuencia se
+    // reinicia cada mes, así que se busca el máximo sufijo numérico entre los
+    // identificadores que ya llevan ese mismo prefijo (familia+mes+año).
+    getUltimaSolicitud: async (req, res) => {
+        try {
+            const { mnemonicoFamilia, mes, anio } = req.body;
+
+            if (!mnemonicoFamilia || !mes || !anio) {
+                return res.status(400).json({ error: 'mnemonicoFamilia, mes y anio son requeridos' });
+            }
+
+            const prefijo = `${String(mnemonicoFamilia).trim().toUpperCase()}-${String(mes).trim().toUpperCase()}-${String(anio).trim()}-`;
+
+            const registros = await Solicitud.findAll({
+                where: { identificador_ensayo: { [Op.like]: `${prefijo}%` } },
+                attributes: ['identificador_ensayo'],
+            });
+
+            let ultimoNumero = 0;
+            for (const r of registros) {
+                const match = /(\d+)$/.exec(r.identificador_ensayo || '');
+                if (match) {
+                    const n = parseInt(match[1], 10);
+                    if (n > ultimoNumero) ultimoNumero = n;
+                }
+            }
+
+            return res.status(200).json({
+                data: { ultimo_numero_ensayo: ultimoNumero },
+                length: 1
+            });
+        } catch (error) {
+            handleError(res, error, 'Error fetching last solicitud sequence for familia');
+        }
+    },
+
     // Get all records
     getAll: async (req, res) => {
         try {
@@ -81,7 +135,8 @@ module.exports = {
 
             const { count, rows } = await Solicitud.findAndCountAll({
                 limit: parseInt(limit),
-                offset: parseInt(offset)
+                offset: parseInt(offset),
+                where: { estado: 'A' }
             });
 
             return res.status(200).json({

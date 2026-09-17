@@ -91,9 +91,10 @@ module.exports = {
             const { count, rows } = await Formulario_tabla.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Formulario, as: 'formulario' },
-                    { model: Tabla, as: 'tabla' }
+                    { model: Formulario, as: 'formulario', where: { estado: 'A' } },
+                    { model: Tabla, as: 'tabla', where: { estado: 'A' } }
                 ]
             });
 

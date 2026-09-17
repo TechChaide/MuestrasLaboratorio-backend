@@ -29,7 +29,11 @@ module.exports = (sequelize) => {
         responsable_ensayo: {
             type: DataTypes.STRING
         },
-        
+
+        correo_responsable_ensayo: {
+            type: DataTypes.STRING
+        },
+
         fecha_inicio: {
             type: DataTypes.DATE
         },
@@ -49,11 +53,30 @@ module.exports = (sequelize) => {
         fecha_creacion: {
             type: DataTypes.DATE
         },
-        
+
         usuario_creacion: {
             type: DataTypes.STRING
+        },
+
+        // Aprobación de resultados (revisión posterior a la culminación de
+        // la fase de captura de datos — ver mailer.js notificación 2.3/2.4).
+        // codigo_estado_aprobacion: 'PA' pendiente, 'AP' aprobado, 'RE' rechazado.
+        codigo_estado_aprobacion: {
+            type: DataTypes.STRING
+        },
+
+        usuario_aprobacion: {
+            type: DataTypes.STRING
+        },
+
+        fecha_aprobacion: {
+            type: DataTypes.DATE
+        },
+
+        observaciones_aprobacion: {
+            type: DataTypes.TEXT
         }
-        
+
     }, {
         tableName: 'ensayo_categoria_ensayo',
         schema: 'dbo',

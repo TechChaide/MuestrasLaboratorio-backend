@@ -88,8 +88,9 @@ module.exports = {
             const { count, rows } = await Tipo_ensayo.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Familia, as: 'familia' }
+                    { model: Familia, as: 'familia', where: { estado: 'A' } }
                 ]
             });
 

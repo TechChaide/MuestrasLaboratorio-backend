@@ -1,5 +1,10 @@
 const { Celda, Columna, Tabla } = require('../models');
 const { handleError } = require('../helpers/error.helper');
+const { where } = require('sequelize');
+
+// Tipos de dato controlados para el valor que se captura en una celda.
+const TIPOS_DATO_VALIDOS = ['entero', 'double', 'fecha', 'texto', 'booleano', 'nulos', 'imagen'];
+const TIPO_DATO_DEFECTO = 'texto';
 
 module.exports = {
     // Create or update record
@@ -14,6 +19,7 @@ module.exports = {
                 rowspan,
                 colspan,
                 tipo_celda,
+                tipo_dato,
                 alias,
                 campo_obligatorio,
                 estado,
@@ -22,6 +28,12 @@ module.exports = {
             } = req.body;
 
             // Validate required fields
+
+            if (tipo_dato !== undefined && tipo_dato !== null && !TIPOS_DATO_VALIDOS.includes(tipo_dato)) {
+                return res.status(400).json({
+                    error: `tipo_dato inválido. Valores permitidos: ${TIPOS_DATO_VALIDOS.join(', ')}`
+                });
+            }
 
             if (codigo_celda == 0 || codigo_celda === undefined) {
                 // Create new record
@@ -33,6 +45,7 @@ module.exports = {
                     rowspan: rowspan,
                     colspan: colspan,
                     tipo_celda: tipo_celda,
+                    tipo_dato: tipo_dato || TIPO_DATO_DEFECTO,
                     alias: alias,
                     campo_obligatorio: campo_obligatorio,
                     estado: estado,
@@ -72,6 +85,7 @@ module.exports = {
                 if (rowspan !== undefined) record.rowspan = rowspan;
                 if (colspan !== undefined) record.colspan = colspan;
                 if (tipo_celda !== undefined) record.tipo_celda = tipo_celda;
+                if (tipo_dato !== undefined) record.tipo_dato = tipo_dato;
                 if (alias !== undefined) record.alias = alias;
                 if (campo_obligatorio !== undefined) record.campo_obligatorio = campo_obligatorio;
                 if (estado !== undefined) record.estado = estado;
@@ -106,9 +120,10 @@ module.exports = {
             const { count, rows } = await Celda.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Columna, as: 'columna' },
-                    { model: Tabla, as: 'tabla' }
+                    { model: Columna, as: 'columna', where: { estado: 'A' } },
+                    { model: Tabla, as: 'tabla', where: { estado: 'A' } }
                 ]
             });
 

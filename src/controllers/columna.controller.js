@@ -88,8 +88,9 @@ module.exports = {
             const { count, rows } = await Columna.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Tabla, as: 'tabla' }
+                    { model: Tabla, as: 'tabla', where: { estado: 'A' } }
                 ]
             });
 

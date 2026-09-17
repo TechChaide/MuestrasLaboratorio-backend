@@ -95,12 +95,36 @@ module.exports = {
 
             const { count, rows } = await Muestra.findAndCountAll({
                 limit: parseInt(limit),
-                offset: parseInt(offset)
+                offset: parseInt(offset),
+                where: { estado: 'A' },
+                include: [{
+                    association: 'ensayosCategoriaEnsayo',
+                    attributes: ['codigo_ensayo_categoria_ensayo', 'codigo_solicitud'],
+                    include: [{
+                        association: 'solicitud',
+                        attributes: ['codigo_solicitud', 'identificador_ensayo']
+                    }]
+                }]
+            });
+
+            // Aplana las solicitudes asignadas (vía ensayo_categoria_ensayo) a un
+            // solo campo por muestra, para que el listado de administración de
+            // muestras pueda mostrar el/los identificador(es) sin que el frontend
+            // tenga que recorrer la relación anidada.
+            const data = rows.map((row) => {
+                const plain = row.toJSON();
+                const identificadores = Array.from(new Set(
+                    (plain.ensayosCategoriaEnsayo || [])
+                        .map((e) => e.solicitud?.identificador_ensayo)
+                        .filter(Boolean)
+                ));
+                delete plain.ensayosCategoriaEnsayo;
+                return { ...plain, identificadores_ensayo: identificadores };
             });
 
             return res.status(200).json({
-                data: rows,
-                length: rows.length,
+                data,
+                length: data.length,
                 total: count,
                 page: parseInt(page),
                 totalPages: Math.ceil(count / limit)

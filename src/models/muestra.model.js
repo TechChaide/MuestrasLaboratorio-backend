@@ -71,7 +71,11 @@ module.exports = (sequelize) => {
 
     // Setup relationships (only belongsTo)
     Muestra.associate = (models) => {
-        
+        Muestra.hasMany(models.Ensayo_categoria_ensayo, {
+            foreignKey: 'codigo_muestra',
+            as: 'ensayosCategoriaEnsayo',
+            sourceKey: 'codigo_muestra'
+        });
     };
 
     return Muestra;

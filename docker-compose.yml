@@ -8,6 +8,11 @@ services:
       - ./.env
     environment:
       - TZ=America/Guayaquil
+      # checkToken interno (misma red Traefik). Evita hairpin a apps.chaide.com.
+      - AUTH_API_URL=http://seguridades_guard_service:5400/api/auths/checkToken
+      - DISABLE_AUTH=false
+      - SKIP_AUTH=false
+      - NODE_ENV=production
     networks:
       - traefik-net
     volumes:

@@ -85,9 +85,10 @@ module.exports = {
             const { count, rows } = await Dependencias.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Celda, as: 'celda' },
-                    { model: Formula, as: 'formula' }
+                    { model: Celda, as: 'celda', where: { estado: 'A' } },
+                    { model: Formula, as: 'formula', where: { estado: 'A' } }
                 ]
             });
 

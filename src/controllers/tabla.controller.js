@@ -1,5 +1,65 @@
-const { Tabla, Tipo_ensayo } = require('../models');
+const { Op } = require('sequelize');
+const {
+    sequelize,
+    Tabla,
+    Tipo_ensayo,
+    Columna,
+    Celda,
+    Formula,
+    Dependencias,
+    Formulario_tabla,
+    Formulario,
+    Ensayo_categoria_ensayo,
+    Resultado,
+} = require('../models');
 const { handleError } = require('../helpers/error.helper');
+
+/** Formularios ACTIVOS que aún referencian esta tabla, y los ensayos (instancias
+ * de Ensayo_categoria_ensayo) que a su vez dependen de esos formularios. Todo
+ * resuelto en el servidor con consultas puntuales (where + IN), sin traer al
+ * cliente el universo completo de formulario_tabla / formularios / ensayos. */
+async function resolveDependenciasTabla(codigoTabla) {
+    const links = await Formulario_tabla.findAll({
+        where: { codigo_tabla: codigoTabla, estado: 'A' },
+        include: [{ model: Formulario, as: 'formulario' }],
+    });
+
+    const formularioIds = [...new Set(links.map((l) => l.codigo_formulario).filter(Boolean))];
+
+    const ensayos = formularioIds.length
+        ? await Ensayo_categoria_ensayo.findAll({
+              where: { codigo_formulario: { [Op.in]: formularioIds }, estado: 'A' },
+              include: [{ model: Tipo_ensayo, as: 'tipo_ensayo' }],
+          })
+        : [];
+
+    const celdas = await Celda.findAll({
+        where: { codigo_tabla: codigoTabla },
+        attributes: ['codigo_celda'],
+    });
+    const celdaIds = celdas.map((c) => c.codigo_celda);
+
+    const totalResultadosCapturados = celdaIds.length
+        ? await Resultado.count({ where: { codigo_celda: { [Op.in]: celdaIds }, estado: 'A' } })
+        : 0;
+
+    return {
+        codigo_tabla: codigoTabla,
+        en_uso: formularioIds.length > 0,
+        formularios: links.map((l) => ({
+            codigo_formulario: l.codigo_formulario,
+            nombre_formulario: l.formulario?.nombre_formulario,
+            cabecera_formulario: l.cabecera_formulario,
+        })),
+        ensayos: ensayos.map((e) => ({
+            codigo_ensayo_categoria_ensayo: e.codigo_ensayo_categoria_ensayo,
+            codigo_tipo_ensayo: e.codigo_tipo_ensayo,
+            nombre_tipo_ensayo: e.tipo_ensayo?.nombre_tipo_ensayo,
+            estado: e.estado,
+        })),
+        total_resultados_capturados: totalResultadosCapturados,
+    };
+}
 
 module.exports = {
     // Create or update record
@@ -53,7 +113,7 @@ module.exports = {
                         { model: Tipo_ensayo, as: 'tipo_ensayo' }
                     ]
                 });
-                
+
                 if (!record) {
                     return res.status(404).json({ error: 'Record not found' });
                 }
@@ -69,7 +129,7 @@ module.exports = {
                 if (estado !== undefined) record.estado = estado;
                 if (fecha_modificacion !== undefined) record.fecha_modificacion = fecha_modificacion;
                 if (usuario_modificacion !== undefined) record.usuario_modificacion = usuario_modificacion;
-                
+
                 await record.save();
 
                 const updatedRecord = await Tabla.findByPk(codigo_tabla, {
@@ -97,8 +157,9 @@ module.exports = {
             const { count, rows } = await Tabla.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
+                where: { estado: 'A' },
                 include: [
-                    { model: Tipo_ensayo, as: 'tipo_ensayo' }
+                    { model: Tipo_ensayo, as: 'tipo_ensayo', where: { estado: 'A' } }
                 ]
             });
 
@@ -118,7 +179,7 @@ module.exports = {
     getById: async (req, res) => {
         try {
             const { id } = req.params;
-            
+
             const record = await Tabla.findByPk(id, {
                 include: [
                     { model: Tipo_ensayo, as: 'tipo_ensayo' }
@@ -126,7 +187,7 @@ module.exports = {
             });
 
             if (!record) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     error: 'Record not found',
                     id: id
                 });
@@ -141,26 +202,115 @@ module.exports = {
         }
     },
 
-    // Deactivate record (soft delete)
-    deactivate: async (req, res) => {
+    // ¿Está la tabla en uso? Formularios activos que la referencian y ensayos
+    // (Ensayo_categoria_ensayo) que dependen de esos formularios. Consultado
+    // antes de intentar eliminar, para decidir si se bloquea o se procede.
+    getDependencias: async (req, res) => {
         try {
-            const { id } = req.params;
-            
-            const record = await Tabla.findByPk(id);
-            
+            const codigoTabla = parseInt(req.params.id, 10);
+            if (!Number.isFinite(codigoTabla)) {
+                return res.status(400).json({ error: 'id inválido' });
+            }
+
+            const dependencias = await resolveDependenciasTabla(codigoTabla);
+            return res.status(200).json({ data: dependencias });
+        } catch (error) {
+            handleError(res, error, 'Error checking tabla dependencies');
+        }
+    },
+
+    // Deactivate record (soft delete) en cascada: columna, celda, formula,
+    // dependencias y los vínculos formulario_tabla de esta tabla. Bloquea si
+    // algún formulario activo todavía la usa (ver getDependencias).
+    deactivate: async (req, res) => {
+        const t = await sequelize.transaction();
+        try {
+            const codigoTabla = parseInt(req.params.id, 10);
+            if (!Number.isFinite(codigoTabla)) {
+                await t.rollback();
+                return res.status(400).json({ error: 'id inválido' });
+            }
+
+            const record = await Tabla.findByPk(codigoTabla, { transaction: t });
             if (!record) {
+                await t.rollback();
                 return res.status(404).json({ error: 'Record not found' });
             }
 
-            // Soft delete by setting status
+            // Re-verificar en el servidor: nunca confiar en un chequeo previo del cliente.
+            const dependencias = await resolveDependenciasTabla(codigoTabla);
+            if (dependencias.en_uso) {
+                await t.rollback();
+                return res.status(409).json({
+                    error: 'La tabla está en uso por al menos un formulario activo y no se puede eliminar.',
+                    dependencias,
+                });
+            }
+
+            const celdas = await Celda.findAll({
+                where: { codigo_tabla: codigoTabla },
+                attributes: ['codigo_celda'],
+                transaction: t,
+            });
+            const celdaIds = celdas.map((c) => c.codigo_celda);
+
+            const formulas = celdaIds.length
+                ? await Formula.findAll({
+                      where: { codigo_celda: { [Op.in]: celdaIds } },
+                      attributes: ['codigo_formula'],
+                      transaction: t,
+                  })
+                : [];
+            const formulaIds = formulas.map((f) => f.codigo_formula);
+
+            if (formulaIds.length || celdaIds.length) {
+                await Dependencias.update(
+                    { estado: 'I' },
+                    {
+                        where: {
+                            [Op.or]: [
+                                formulaIds.length ? { codigo_formula: { [Op.in]: formulaIds } } : null,
+                                celdaIds.length ? { codigo_celda: { [Op.in]: celdaIds } } : null,
+                            ].filter(Boolean),
+                        },
+                        transaction: t,
+                    }
+                );
+            }
+
+            if (celdaIds.length) {
+                await Formula.update(
+                    { estado: 'I' },
+                    { where: { codigo_celda: { [Op.in]: celdaIds } }, transaction: t }
+                );
+                await Celda.update(
+                    { estado: 'I' },
+                    { where: { codigo_tabla: codigoTabla }, transaction: t }
+                );
+            }
+
+            await Columna.update(
+                { estado: 'I' },
+                { where: { codigo_tabla: codigoTabla }, transaction: t }
+            );
+
+            // Vínculos con formularios (ya se verificó arriba que ninguno está activo).
+            await Formulario_tabla.update(
+                { estado: 'I' },
+                { where: { codigo_tabla: codigoTabla }, transaction: t }
+            );
+
             record.estado = 'I';
-            await record.save();
+            await record.save({ transaction: t });
+
+            await t.commit();
 
             return res.status(200).json({
-                message: 'Record deactivated successfully',
-                id: id
+                message: 'Tabla y sus relaciones (columnas, celdas, fórmulas, dependencias y vínculos con formularios) desactivadas correctamente.',
+                id: codigoTabla,
             });
         } catch (error) {
+            await t.rollback();
             handleError(res, error, 'Error deactivating record');
         }
     }
