@@ -88,13 +88,15 @@ module.exports = {
             const { page = 1, limit = 10000 } = req.query;
             const offset = (page - 1) * limit;
 
+            // Formulario/tabla inactivos (versión anterior) deben seguir
+            // resolviéndose: el ensayo guarda codigo_formulario de esa versión.
             const { count, rows } = await Formulario_tabla.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
                 where: { estado: 'A' },
                 include: [
-                    { model: Formulario, as: 'formulario', where: { estado: 'A' } },
-                    { model: Tabla, as: 'tabla', where: { estado: 'A' } }
+                    { model: Formulario, as: 'formulario', required: false },
+                    { model: Tabla, as: 'tabla', required: false }
                 ]
             });
 

@@ -1,7 +1,7 @@
 # Dockerfile para la carpeta /Backend
 
 # Usar una imagen base oficial de Node.js con Alpine Linux
-FROM node:18-alpine
+FROM node:22-alpine
 
 # --- 1. Instalar CRON Y CURL ---
 # Actualizar los paquetes e instalar el demonio de cron (el paquete se llama 'dcron') y curl

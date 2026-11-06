@@ -117,13 +117,15 @@ module.exports = {
             const { page = 1, limit = 10000 } = req.query;
             const offset = (page - 1) * limit;
 
+            // No filtrar Tabla.estado: las celdas de una versión inactiva deben
+            // seguir cargándose para mostrar resultados ya capturados.
             const { count, rows } = await Celda.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
                 where: { estado: 'A' },
                 include: [
-                    { model: Columna, as: 'columna', where: { estado: 'A' } },
-                    { model: Tabla, as: 'tabla', where: { estado: 'A' } }
+                    { model: Columna, as: 'columna', required: false },
+                    { model: Tabla, as: 'tabla', required: false }
                 ]
             });
 
@@ -136,6 +138,26 @@ module.exports = {
             });
         } catch (error) {
             handleError(res, error, 'Error fetching records');
+        }
+    },
+
+    // GET /api/celda/por-tabla?codigo_tabla=77
+    getByTabla: async (req, res) => {
+        try {
+            const codigoTabla = Number(req.query.codigo_tabla);
+            if (!Number.isInteger(codigoTabla) || codigoTabla <= 0) {
+                return res.status(400).json({ error: 'codigo_tabla es requerido' });
+            }
+            const rows = await Celda.findAll({
+                where: { estado: 'A', codigo_tabla: codigoTabla },
+                include: [
+                    { model: Columna, as: 'columna', required: false },
+                    { model: Tabla, as: 'tabla', required: false },
+                ],
+            });
+            return res.status(200).json({ data: rows, length: rows.length, total: rows.length });
+        } catch (error) {
+            handleError(res, error, 'Error fetching celdas por tabla');
         }
     },
 

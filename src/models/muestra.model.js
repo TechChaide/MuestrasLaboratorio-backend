@@ -31,14 +31,6 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING
         },
         
-        lote_serial: {
-            type: DataTypes.STRING
-        },
-        
-        fecha_fabricacion: {
-            type: DataTypes.STRING
-        },
-        
         fecha_carga: {
             type: DataTypes.DATE
         },

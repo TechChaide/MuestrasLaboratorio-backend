@@ -3,6 +3,7 @@ const { handleError } = require('../helpers/error.helper');
 const {
     enviarNotificacionAsignacionEnsayo,
     enviarNotificacionCulminacionFase,
+    enviarNotificacionCulminacionSolicitud,
     enviarNotificacionResultadosEnsayo,
     enviarNotificacionAprobacionEnsayo,
     enviarNotificacionRechazoEnsayo,
@@ -308,6 +309,65 @@ module.exports = {
             return res.status(200).json({ data: record });
         } catch (error) {
             handleError(res, error, 'Error marking record as pending approval');
+        }
+    },
+
+    // Culminación a nivel de SOLICITUD: marca PA todos los ensayos activos de la
+    // solicitud y envía UNA sola notificación al jefe (no una por tipo de ensayo).
+    marcarSolicitudPendienteAprobacion: async (req, res) => {
+        try {
+            const { codigoSolicitud } = req.params;
+            const { correos } = req.body;
+
+            const registros = await Ensayo_categoria_ensayo.findAll({
+                where: {
+                    codigo_solicitud: codigoSolicitud,
+                    estado: 'A',
+                },
+                include: [
+                    { model: Solicitud, as: 'solicitud' },
+                    { model: Tipo_ensayo, as: 'tipo_ensayo' },
+                ],
+            });
+
+            if (!registros.length) {
+                return res.status(404).json({ error: 'No hay ensayos activos para esta solicitud' });
+            }
+
+            // No re-notificar si ya todos están en PA o AP.
+            const pendientes = registros.filter(
+                (r) => r.codigo_estado_aprobacion !== 'PA' && r.codigo_estado_aprobacion !== 'AP'
+            );
+
+            for (const record of pendientes) {
+                record.codigo_estado_aprobacion = 'PA';
+                await record.save();
+            }
+
+            const identificador = registros[0].solicitud?.identificador_ensayo;
+            const tipos = registros
+                .map((r) => r.tipo_ensayo?.nombre_tipo_ensayo)
+                .filter(Boolean);
+            const responsable =
+                registros.find((r) => r.responsable_ensayo)?.responsable_ensayo ||
+                registros[0].responsable_ensayo;
+
+            const destinatarios = correos || process.env.MAIL_APROBADORES || '';
+            enviarNotificacionCulminacionSolicitud(destinatarios, {
+                identificador_ensayo: identificador,
+                tipos_ensayo: tipos,
+                responsable_ensayo: responsable,
+            }).catch((err) =>
+                console.error('No se pudo enviar notificación de culminación de solicitud:', err)
+            );
+
+            return res.status(200).json({
+                data: registros,
+                updated: pendientes.length,
+                alreadyPending: registros.length - pendientes.length,
+            });
+        } catch (error) {
+            handleError(res, error, 'Error marking solicitud ensayos as pending approval');
         }
     },
 

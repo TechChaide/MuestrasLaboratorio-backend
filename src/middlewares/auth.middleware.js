@@ -4,10 +4,20 @@ const axios = require('axios');
  * Validación de token vía seguridadesGuard — mismo patrón que muestreos-backend.
  * GET AUTH_API_URL con Authorization: Bearer <token>
  * Respuesta esperada: true
+ *
+ * Si el token ya venció pero hace ≤ TOKEN_EXPIRED_GRACE_HOURS, se permite
+ * continuar (p. ej. guardar). Si pasó más de ese margen → 401.
  */
 const AUTH_API_URL =
     process.env.AUTH_API_URL ||
     'http://seguridades_guard_service:5400/api/auths/checkToken';
+
+/** Horas máximas desde el vencimiento del token para seguir permitiendo operaciones. */
+const TOKEN_EXPIRED_GRACE_HOURS = 3;
+const TOKEN_EXPIRED_GRACE_MS = TOKEN_EXPIRED_GRACE_HOURS * 60 * 60 * 1000;
+
+console.log('AUTH_API_URL', AUTH_API_URL);
+console.log('TOKEN_EXPIRED_GRACE_HOURS', TOKEN_EXPIRED_GRACE_HOURS);
 
 const AUTH_DISABLED =
     process.env.NODE_ENV !== 'production' &&
@@ -31,10 +41,6 @@ const verifyToken = async (req, res, next) => {
     let token = null;
     const authHeader = req.headers['authorization'];
     const cookieToken = req.cookies?.token;
-
-    console.log('authHeader:', authHeader);
-    console.log('cookieToken:', cookieToken);
-
     if (authHeader) token = authHeader.replace(/^Bearer\s+/i, '').trim();
     if (!token && cookieToken) token = cookieToken;
 
@@ -51,9 +57,37 @@ const verifyToken = async (req, res, next) => {
             timeout: 15000,
         });
 
-        if (response.data === true) {
+        console.log('response', response.data);
+
+        if (response.data === true || response.data?.valid === true) {
             req.token = token;
             return next();
+        }
+
+        // Token vencido: gracia de TOKEN_EXPIRED_GRACE_HOURS para seguir guardando.
+        if (response.data && response.data.reason === 'EXPIRED') {
+            const expiredAgoMs = Number(response.data.expiredAgoMs);
+            const withinGrace =
+                Number.isFinite(expiredAgoMs) &&
+                expiredAgoMs >= 0 &&
+                expiredAgoMs <= TOKEN_EXPIRED_GRACE_MS;
+
+            if (withinGrace) {
+                req.token = token;
+                req.tokenExpiredGrace = true;
+                req.tokenExpiredAt = response.data.expiredAt;
+                req.tokenExpiredAgoMs = expiredAgoMs;
+                return next();
+            }
+
+            return res.status(401).json({
+                message: `Token expired more than ${TOKEN_EXPIRED_GRACE_HOURS} hours ago`,
+                code: 'EXPIRED_TOKEN',
+                graceHours: TOKEN_EXPIRED_GRACE_HOURS,
+                expiredAt: response.data.expiredAt,
+                expiredAgoMs: response.data.expiredAgoMs,
+                expiredAgoSeconds: response.data.expiredAgoSeconds,
+            });
         }
 
         return res.status(401).json({
@@ -71,4 +105,4 @@ const verifyToken = async (req, res, next) => {
     }
 };
 
-module.exports = { verifyToken };
+module.exports = { verifyToken, TOKEN_EXPIRED_GRACE_HOURS };

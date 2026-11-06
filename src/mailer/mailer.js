@@ -217,6 +217,41 @@ async function enviarNotificacionCulminacionFase(correos, datos) {
     );
 }
 
+// 2.3b — Culminación a nivel de SOLICITUD: se notifica una sola vez cuando
+// todos los tipos de ensayo de la solicitud terminaron la captura.
+async function enviarNotificacionCulminacionSolicitud(correos, datos) {
+    const { identificador_ensayo, tipos_ensayo, responsable_ensayo } = datos || {};
+    const nombreResponsable = await getNombreEmpleado(responsable_ensayo);
+    const listaTipos = Array.isArray(tipos_ensayo) ? tipos_ensayo.filter(Boolean) : [];
+    const tiposHtml = listaTipos.length
+        ? `<ul>${listaTipos.map((t) => `<li>${t}</li>`).join('')}</ul>`
+        : '<p>N/A</p>';
+
+    const cuerpoHtml = `
+        <p>Estimados,</p>
+        <p>La solicitud completó la fase de captura de datos en <strong>todos</strong> sus tipos de ensayo y está lista para revisión y aprobación:</p>
+        <div class="campo"><strong>Identificador:</strong> <span class="highlight">${identificador_ensayo || 'N/A'}</span></div>
+        <div class="campo"><strong>Tipos de ensayo culminados:</strong></div>
+        ${tiposHtml}
+        <div class="campo"><strong>Responsable (técnico):</strong> ${nombreResponsable || 'N/A'}</div>
+        <p style="margin-top: 20px;">Ingrese al sistema para revisar los resultados capturados y aprobar los ensayos.</p>
+        <p>Saludos cordiales.</p>
+    `;
+
+    const html = construirHtml({
+        colorAcento: '#fd7e14',
+        titulo: 'Solicitud: fase de ensayos culminada',
+        cuerpoHtml,
+    });
+
+    await enviarSiHayCorreos(
+        correos,
+        `Fase de ensayos culminada (solicitud) - ${identificador_ensayo || ''}`.trim(),
+        html,
+        'Correo de culminación de solicitud'
+    );
+}
+
 // 2.4 — Notificación de resultados de ensayos: avisa al solicitante que los
 // resultados finales (aprobados) ya están disponibles.
 async function enviarNotificacionResultadosEnsayo(correos, datos) {
@@ -381,6 +416,7 @@ module.exports = {
     enviarNotificacionRequerimientoEntrante,
     enviarNotificacionAsignacionEnsayo,
     enviarNotificacionCulminacionFase,
+    enviarNotificacionCulminacionSolicitud,
     enviarNotificacionResultadosEnsayo,
     enviarNotificacionAprobacionEnsayo,
     enviarNotificacionRechazoEnsayo,

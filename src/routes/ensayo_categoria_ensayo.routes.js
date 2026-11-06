@@ -6,6 +6,7 @@ const Ensayo_categoria_ensayoController = require('../controllers/ensayo_categor
 router.get('/pendientes-muestra', Ensayo_categoria_ensayoController.getPendientesMuestra);
 router.patch('/asignar-muestra', Ensayo_categoria_ensayoController.asignarMuestra);
 router.get('/pendientes-aprobacion', Ensayo_categoria_ensayoController.getPendientesAprobacion);
+router.patch('/solicitud/:codigoSolicitud/pendiente-aprobacion', Ensayo_categoria_ensayoController.marcarSolicitudPendienteAprobacion);
 
 // CRUD Endpoints
 router.get('/', Ensayo_categoria_ensayoController.getAll);

@@ -26,8 +26,25 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER
         },
         
+        // DECIMAL amplio: el redondeo a 2 decimales recortaba lo escrito.
+        // Si llega el texto del usuario ("108.12"), se guarda ese texto.
         valor: {
-            type: DataTypes.FLOAT
+            type: DataTypes.DECIMAL(28, 10),
+            set(value) {
+                if (value === null || value === undefined || value === '') {
+                    this.setDataValue('valor', null);
+                    return;
+                }
+                if (typeof value === 'string') {
+                    const texto = value.trim().replace(',', '.');
+                    if (/^-?\d+(\.\d+)?$/.test(texto)) {
+                        this.setDataValue('valor', texto);
+                        return;
+                    }
+                }
+                const numero = Number(value);
+                this.setDataValue('valor', Number.isFinite(numero) ? String(numero) : null);
+            }
         },
         
         resultados: {

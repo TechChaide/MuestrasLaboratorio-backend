@@ -1,5 +1,16 @@
-const { Resultado, Celda, Ensayo_categoria_ensayo } = require('../models');
+const { Op } = require('sequelize');
+const { Resultado, Celda, Ensayo_categoria_ensayo, Tabla } = require('../models');
 const { handleError } = require('../helpers/error.helper');
+
+function idsEnsayoDesdeQuery(valor) {
+    if (valor == null || String(valor).trim() === '') return [];
+    return [...new Set(
+        String(valor)
+            .split(',')
+            .map((s) => Number(s.trim()))
+            .filter((n) => Number.isInteger(n) && n > 0)
+    )];
+}
 
 module.exports = {
     // Create or update record
@@ -113,6 +124,98 @@ module.exports = {
             });
         } catch (error) {
             handleError(res, error, 'Error fetching records');
+        }
+    },
+
+    // Resultados de uno o varios ensayos programados.
+    // GET /api/resultado/por-ensayo?codigo_ensayo_categoria_ensayo=1,2
+    getByEnsayos: async (req, res) => {
+        try {
+            const idsEnsayo = idsEnsayoDesdeQuery(req.query.codigo_ensayo_categoria_ensayo);
+            if (idsEnsayo.length === 0) {
+                return res.status(400).json({ error: 'codigo_ensayo_categoria_ensayo es requerido' });
+            }
+
+            const where = {
+                estado: 'A',
+                codigo_ensayo_categoria_ensayo: idsEnsayo.length === 1 ? idsEnsayo[0] : { [Op.in]: idsEnsayo },
+            };
+
+            const rows = await Resultado.findAll({
+                where,
+                include: [
+                    { model: Celda, as: 'celda', where: { estado: 'A' } },
+                    { model: Ensayo_categoria_ensayo, as: 'ensayo_categoria_ensayo', where: { estado: 'A' } }
+                ]
+            });
+
+            return res.status(200).json({
+                data: rows,
+                length: rows.length,
+                total: rows.length
+            });
+        } catch (error) {
+            handleError(res, error, 'Error fetching resultados por ensayo');
+        }
+    },
+
+    // Resultados de UN ensayo, opcionalmente de UNA versión de tabla.
+    // GET /api/resultado/por-ensayo-tabla?codigo_ensayo_categoria_ensayo=123
+    // GET /api/resultado/por-ensayo-tabla?codigo_ensayo_categoria_ensayo=123&codigo_tabla=77
+    // `versiones` dice en qué codigo_tabla/versión se cargaron los datos.
+    getPorEnsayoTabla: async (req, res) => {
+        try {
+            const idsEnsayo = idsEnsayoDesdeQuery(req.query.codigo_ensayo_categoria_ensayo);
+            if (idsEnsayo.length !== 1) {
+                return res.status(400).json({ error: 'codigo_ensayo_categoria_ensayo debe ser un id' });
+            }
+            const codigoEnsayo = idsEnsayo[0];
+            const codigoTabla = Number(req.query.codigo_tabla);
+            const filtrarTabla = Number.isInteger(codigoTabla) && codigoTabla > 0;
+
+            const celdaWhere = { estado: 'A' };
+            if (filtrarTabla) celdaWhere.codigo_tabla = codigoTabla;
+
+            const rows = await Resultado.findAll({
+                where: { estado: 'A', codigo_ensayo_categoria_ensayo: codigoEnsayo },
+                include: [
+                    {
+                        model: Celda,
+                        as: 'celda',
+                        required: true,
+                        where: celdaWhere,
+                        include: [{ model: Tabla, as: 'tabla', required: false }],
+                    },
+                ],
+            });
+
+            const porTabla = new Map();
+            for (const row of rows) {
+                const celda = row.celda || row.Celda;
+                const tabla = celda?.tabla || celda?.Tabla;
+                const idTabla = Number(celda?.codigo_tabla);
+                if (!idTabla) continue;
+                const prev = porTabla.get(idTabla) || {
+                    codigo_tabla: idTabla,
+                    version: tabla?.version || null,
+                    nombre_tabla: tabla?.nombre_tabla || null,
+                    estado: tabla?.estado || null,
+                    total: 0,
+                };
+                prev.total += 1;
+                porTabla.set(idTabla, prev);
+            }
+
+            const versiones = [...porTabla.values()].sort((a, b) => b.total - a.total || b.codigo_tabla - a.codigo_tabla);
+
+            return res.status(200).json({
+                data: rows,
+                length: rows.length,
+                total: rows.length,
+                versiones,
+            });
+        } catch (error) {
+            handleError(res, error, 'Error fetching resultados por ensayo y tabla');
         }
     },
 

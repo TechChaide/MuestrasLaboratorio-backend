@@ -90,7 +90,7 @@ module.exports = {
                 offset: parseInt(offset),
                 where: { estado: 'A' },
                 include: [
-                    { model: Tabla, as: 'tabla', where: { estado: 'A' } }
+                    { model: Tabla, as: 'tabla', required: false }
                 ]
             });
 
@@ -103,6 +103,23 @@ module.exports = {
             });
         } catch (error) {
             handleError(res, error, 'Error fetching records');
+        }
+    },
+
+    // GET /api/columna/por-tabla?codigo_tabla=77
+    getByTabla: async (req, res) => {
+        try {
+            const codigoTabla = Number(req.query.codigo_tabla);
+            if (!Number.isInteger(codigoTabla) || codigoTabla <= 0) {
+                return res.status(400).json({ error: 'codigo_tabla es requerido' });
+            }
+            const rows = await Columna.findAll({
+                where: { estado: 'A', codigo_tabla: codigoTabla },
+                include: [{ model: Tabla, as: 'tabla', required: false }],
+            });
+            return res.status(200).json({ data: rows, length: rows.length, total: rows.length });
+        } catch (error) {
+            handleError(res, error, 'Error fetching columnas por tabla');
         }
     },
 

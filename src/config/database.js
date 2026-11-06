@@ -39,9 +39,28 @@ const sequelize = new Sequelize({
 });
 
 // Test connection
+/** DECIMAL(18,2) redondeaba el valor al guardarlo. Se amplía sin perder datos. */
+async function ampliarColumnaValor() {
+    const [rows] = await sequelize.query(`
+        SELECT c.scale AS scale
+        FROM sys.columns c
+        INNER JOIN sys.tables t ON c.object_id = t.object_id
+        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+        WHERE s.name = N'dbo' AND t.name = N'resultado' AND c.name = N'valor'
+    `);
+    const row = rows && rows[0];
+    const scale = row ? Number(row.scale ?? row.SCALE) : null;
+    if (scale == null || scale >= 10) return;
+    await sequelize.query(`ALTER TABLE dbo.resultado ALTER COLUMN valor DECIMAL(28, 10) NULL`);
+    console.log('✅ resultado.valor ampliado a DECIMAL(28, 10)');
+}
+
 sequelize.authenticate()
     .then(() => {
         console.log('✅ SQL Server connection established successfully');
+        ampliarColumnaValor().catch((err) => {
+            console.error('❌ No se pudo ampliar resultado.valor:', err.message);
+        });
         
         // Sync database (optional)
         if (process.env.DB_SYNC === 'true') {

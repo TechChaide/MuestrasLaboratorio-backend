@@ -154,12 +154,13 @@ module.exports = {
             const { page = 1, limit = 10000 } = req.query;
             const offset = (page - 1) * limit;
 
+            // Incluye versiones inactivas: los ensayos ya capturados siguen
+            // apuntando a la tabla que se les asignó (no a la última versión).
             const { count, rows } = await Tabla.findAndCountAll({
                 limit: parseInt(limit),
                 offset: parseInt(offset),
-                where: { estado: 'A' },
                 include: [
-                    { model: Tipo_ensayo, as: 'tipo_ensayo', where: { estado: 'A' } }
+                    { model: Tipo_ensayo, as: 'tipo_ensayo', required: false }
                 ]
             });
 

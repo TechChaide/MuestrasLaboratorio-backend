@@ -12,8 +12,6 @@ module.exports = {
                 area_material,
                 detalle_material,
                 material,
-                lote_serial,
-                fecha_fabricacion,
                 fecha_carga,
                 estado,
                 fecha_creacion,
@@ -38,8 +36,6 @@ module.exports = {
                     area_material: area_material,
                     detalle_material: detalle_material,
                     material: material,
-                    lote_serial: lote_serial,
-                    fecha_fabricacion: fecha_fabricacion,
                     fecha_carga: fecha_carga,
                     estado: estado,
                     fecha_creacion: fecha_creacion,
@@ -66,8 +62,6 @@ module.exports = {
                 if (area_material !== undefined) record.area_material = area_material;
                 if (detalle_material !== undefined) record.detalle_material = detalle_material;
                 if (material !== undefined) record.material = material;
-                if (lote_serial !== undefined) record.lote_serial = lote_serial;
-                if (fecha_fabricacion !== undefined) record.fecha_fabricacion = fecha_fabricacion;
                 if (fecha_carga !== undefined) record.fecha_carga = fecha_carga;
                 if (estado !== undefined) record.estado = estado;
                 if (fecha_creacion !== undefined) record.fecha_creacion = fecha_creacion;

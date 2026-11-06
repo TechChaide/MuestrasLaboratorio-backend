@@ -13,6 +13,9 @@ module.exports = {
                 identificador_ensayo,
                 descripcion,
                 fecha_fab_adq,
+                lote_serial,
+                fecha_fabricacion,
+                origen_solicitud,
                 correos_objetivo,
                 aceptacion_terminos,
                 estado_solicitud,
@@ -29,6 +32,9 @@ module.exports = {
                     identificador_ensayo: identificador_ensayo,
                     descripcion: descripcion,
                     fecha_fab_adq: fecha_fab_adq,
+                    lote_serial: lote_serial,
+                    fecha_fabricacion: fecha_fabricacion,
+                    origen_solicitud: origen_solicitud,
                     correos_objetivo: correos_objetivo,
                     aceptacion_terminos: aceptacion_terminos,
                     estado_solicitud: estado_solicitud,
@@ -69,6 +75,9 @@ module.exports = {
                 if (identificador_ensayo !== undefined) record.identificador_ensayo = identificador_ensayo;
                 if (descripcion !== undefined) record.descripcion = descripcion;
                 if (fecha_fab_adq !== undefined) record.fecha_fab_adq = fecha_fab_adq;
+                if (lote_serial !== undefined) record.lote_serial = lote_serial;
+                if (fecha_fabricacion !== undefined) record.fecha_fabricacion = fecha_fabricacion;
+                if (origen_solicitud !== undefined) record.origen_solicitud = origen_solicitud;
                 if (correos_objetivo !== undefined) record.correos_objetivo = correos_objetivo;
                 if (aceptacion_terminos !== undefined) record.aceptacion_terminos = aceptacion_terminos;
                 if (estado_solicitud !== undefined) record.estado_solicitud = estado_solicitud;

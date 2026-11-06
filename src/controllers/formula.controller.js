@@ -117,6 +117,30 @@ module.exports = {
         }
     },
 
+    // GET /api/formula/por-tabla?codigo_tabla=77
+    getByTabla: async (req, res) => {
+        try {
+            const codigoTabla = Number(req.query.codigo_tabla);
+            if (!Number.isInteger(codigoTabla) || codigoTabla <= 0) {
+                return res.status(400).json({ error: 'codigo_tabla es requerido' });
+            }
+            const rows = await Formula.findAll({
+                where: { estado: 'A' },
+                include: [
+                    {
+                        model: Celda,
+                        as: 'celda',
+                        required: true,
+                        where: { estado: 'A', codigo_tabla: codigoTabla },
+                    },
+                ],
+            });
+            return res.status(200).json({ data: rows, length: rows.length, total: rows.length });
+        } catch (error) {
+            handleError(res, error, 'Error fetching formulas por tabla');
+        }
+    },
+
     // Get record by ID
     getById: async (req, res) => {
         try {

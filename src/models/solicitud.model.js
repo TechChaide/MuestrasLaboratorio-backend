@@ -21,6 +21,18 @@ module.exports = (sequelize) => {
         fecha_fab_adq: {
             type: DataTypes.DATE
         },
+
+        lote_serial: {
+            type: DataTypes.STRING
+        },
+
+        fecha_fabricacion: {
+            type: DataTypes.STRING
+        },
+
+        origen_solicitud: {
+            type: DataTypes.STRING
+        },
         
         correos_objetivo: {
             type: DataTypes.STRING
